@@ -1,12 +1,22 @@
 import PropTypes from 'prop-types';
 import './PlayerList.css';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const PlayerList = ({ players, onAddToTeam, onDeletePlayer, onAddPlayer, onGenerateRandomPlayers }) => {
     const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
     const [searchTerm, setSearchTerm] = useState('');
     const [isAddPlayerOpen, setIsAddPlayerOpen] = useState(false);
     const [newPlayer, setNewPlayer] = useState({ name: '', position: '', skills: [] });
+    const [positions, setPositions] = useState([]);
+    const [skills, setSkills] = useState([]);
+    const [skillName, setSkillName] = useState('');
+    const [skillLevel, setSkillLevel] = useState('');
+
+    const handleAddSkill = () => {
+        onAddSkill(skillName, parseInt(skillLevel, 10));
+        setSkillName('');
+        setSkillLevel('');
+    };
 
     const handleMouseMove = (e) => {
         const { clientX, clientY } = e;
@@ -20,11 +30,13 @@ const PlayerList = ({ players, onAddToTeam, onDeletePlayer, onAddPlayer, onGener
     };
 
     // Add skill to new player
-    const addSkill = (skillName, skillLevel) => {
+    const onAddSkill = (skillName, skillLevel) => {
         setNewPlayer((prevPlayer) => ({
             ...prevPlayer,
-            skills: [...prevPlayer.skills, { name: skillName, level: skillLevel }]
+            skills: [...prevPlayer.skills, { name: skillName, level: parseInt(skillLevel, 10) }]
         }));
+        setSkillName('');
+        setSkillLevel('');
     };
 
     const handleAddPlayer = () => {
@@ -35,6 +47,39 @@ const PlayerList = ({ players, onAddToTeam, onDeletePlayer, onAddPlayer, onGener
     const filteredPlayers = players.filter((player) =>
         player.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    useEffect(() => {
+        if (isAddPlayerOpen) {
+            // Fetch positions
+            const fetchPositions = async () => {
+                try {
+                    const response = await fetch('/api/positions');
+                    if (response.ok) {
+                        const data = await response.json();
+                        setPositions(data);
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch positions:', error);
+                }
+            };
+
+            // Fetch skills
+            const fetchSkills = async () => {
+                try {
+                    const response = await fetch('/api/skills');
+                    if (response.ok) {
+                        const data = await response.json();
+                        setSkills(data);
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch skills:', error);
+                }
+            };
+
+            fetchPositions();
+            fetchSkills();
+        }
+    }, [isAddPlayerOpen]);
 
     return (
         <div className="playerListContainer">
@@ -54,7 +99,7 @@ const PlayerList = ({ players, onAddToTeam, onDeletePlayer, onAddPlayer, onGener
                 className="searchBox"
             />
 
-            {/* Add Player Popup */}
+
             {isAddPlayerOpen && (
                 <div className="popupOverlay">
                     <div className="popupContent">
@@ -65,24 +110,41 @@ const PlayerList = ({ players, onAddToTeam, onDeletePlayer, onAddPlayer, onGener
                             value={newPlayer.name}
                             onChange={(e) => setNewPlayer({ ...newPlayer, name: e.target.value })}
                         />
+
+                        {/* Positions Dropdown */}
                         <select
                             value={newPlayer.position}
                             onChange={(e) => setNewPlayer({ ...newPlayer, position: e.target.value })}
                         >
                             <option value="">Select Position</option>
-                            <option value="defender">Defender</option>
-                            <option value="midfielder">Midfielder</option>
-                            <option value="forward">Forward</option>
+                            {positions.map((position) => (
+                                <option key={position} value={position}>{position}</option>
+                            ))}
                         </select>
 
-                        {/* Add Skills Section */}
                         <h4>Skills</h4>
                         {newPlayer.skills.map((skill, index) => (
                             <div key={index} className="skillEntry">
                                 {skill.name}: {skill.level}
                             </div>
                         ))}
-                        <SkillInputPopup onAddSkill={addSkill} />
+
+                        {/* Skill Selection */}
+                        <div>
+                            <select value={skillName} onChange={(e) => setSkillName(e.target.value)}>
+                                <option value="">Select Skill</option>
+                                {skills.map((skill) => (
+                                    <option key={skill} value={skill}>{skill}</option>
+                                ))}
+                            </select>
+                            <input
+                                type="number"
+                                placeholder="Skill Level"
+                                value={skillLevel}
+                                onChange={(e) => setSkillLevel(e.target.value)}
+                            />
+                            <button onClick={handleAddSkill} className="buttonSmall">Add Skill</button>
+                        </div>
 
                         <button onClick={handleAddPlayer} className="buttonSmall">Add Player</button>
                         <button onClick={toggleAddPlayerPopup} className="buttonSmall">Cancel</button>
@@ -92,11 +154,7 @@ const PlayerList = ({ players, onAddToTeam, onDeletePlayer, onAddPlayer, onGener
 
             <ul>
                 {filteredPlayers.map((player) => (
-                    <li
-                        key={player.id}
-                        className="playerRow"
-                        onMouseMove={handleMouseMove}
-                    >
+                    <li key={player.id} className="playerRow" onMouseMove={handleMouseMove}>
                         <div className="playerName">
                             <strong>{player.name}</strong> - {player.position}
                         </div>
@@ -106,10 +164,7 @@ const PlayerList = ({ players, onAddToTeam, onDeletePlayer, onAddPlayer, onGener
                         </div>
 
                         {/* Tooltip content */}
-                        <div
-                            className="tooltip"
-                            style={{ top: tooltipPosition.top - 20, left: tooltipPosition.left + 10 }}
-                        >
+                        <div className="tooltip" style={{ top: tooltipPosition.top - 20, left: tooltipPosition.left + 10 }}>
                             <strong>Skills:</strong>
                             <ul>
                                 {player.skills.map((skill) => (
@@ -122,36 +177,6 @@ const PlayerList = ({ players, onAddToTeam, onDeletePlayer, onAddPlayer, onGener
                     </li>
                 ))}
             </ul>
-        </div>
-    );
-};
-
-// Separate component for skill input
-const SkillInputPopup = ({ onAddSkill }) => {
-    const [skillName, setSkillName] = useState('');
-    const [skillLevel, setSkillLevel] = useState('');
-
-    const handleAddSkill = () => {
-        onAddSkill(skillName, parseInt(skillLevel, 10));
-        setSkillName('');
-        setSkillLevel('');
-    };
-
-    return (
-        <div>
-            <input
-                type="text"
-                placeholder="Skill Name"
-                value={skillName}
-                onChange={(e) => setSkillName(e.target.value)}
-            />
-            <input
-                type="number"
-                placeholder="Skill Level"
-                value={skillLevel}
-                onChange={(e) => setSkillLevel(e.target.value)}
-            />
-            <button onClick={handleAddSkill} className="buttonSmall">Add Skill</button>
         </div>
     );
 };

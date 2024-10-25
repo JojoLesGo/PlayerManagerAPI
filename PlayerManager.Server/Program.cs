@@ -54,12 +54,12 @@ app.MapGet("/api/players", (IPlayerRepository repo) => repo.GetAllPlayers());
 
 app.MapGet("/api/skills", () =>
 {
-    List<string> skills = new List<string>();
-    foreach (var skill in Enum.GetValues<SkillName>())
-    {
-        skills.Add(skill.ToString());
-    }
-    return Results.Ok(skills);
+    return Results.Ok(Enum.GetNames<SkillName>().ToList());
+});
+
+app.MapGet("/api/positions", () =>
+{
+    return Results.Ok(Enum.GetNames<Position>().ToList());
 });
 
 app.MapPost("/api/players", (Player player, IPlayerRepository repo) => {

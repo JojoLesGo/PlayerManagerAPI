@@ -2,6 +2,7 @@
     max-height: 400px; /* Same max height as player list */
     overflow-y: auto; /* Enable vertical scrolling */
     padding-right: 10px; /* Add padding for scrollbar space */
+    overflow-x: hidden;
 }
 
 .teamMemberRow {
@@ -34,4 +35,24 @@
     align-items: center; /* Vertically aligns the button with the text */
     justify-content: space-between; /* Add space between items */
     width: 100%; /* Ensure it takes up the available space */
+}
+
+/* Tooltip styles */
+.tooltip {
+    position: absolute;
+    background-color: #333;
+    color: #fff;
+    padding: 5px;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, -100%);
+    transition: opacity 0.2s ease;
+    z-index: 10;
+}
+
+.teamMemberRow:hover .tooltip {
+    opacity: 1;
 }

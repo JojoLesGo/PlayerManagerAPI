@@ -7,7 +7,6 @@ import './global.css';
 function App() {
     const [players, setPlayers] = useState([]);
     const [team, setTeam] = useState([]); // Players in the team
-    const [bestPlayers, setBestPlayers] = useState([]); // Best players returned from the API
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [selectedOptions, setSelectedOptions] = useState(
@@ -26,7 +25,19 @@ function App() {
                 }
 
                 const data = await response.json();
-                setPlayers(data);
+
+                // Filter out players already in the team
+                const filteredPlayers = data.filter(
+                    (player) => !team.some((teamMember) => teamMember.id === player.id)
+                );
+
+                // Sort players by name
+                const sortedPlayers = filteredPlayers.sort((a, b) => a.name.localeCompare(b.name));
+
+                // Only update the players if data has changed
+                setPlayers((prevPlayers) =>
+                    JSON.stringify(prevPlayers) !== JSON.stringify(sortedPlayers) ? sortedPlayers : prevPlayers
+                );
             } catch (error) {
                 console.error('Error fetching players:', error);
                 setError(error.message);
@@ -35,8 +46,13 @@ function App() {
             }
         };
 
+        // Initial fetch and start the interval
         fetchPlayers();
-    }, []);
+        const intervalId = setInterval(fetchPlayers, 5000); // Fetch every 5 seconds
+
+        // Cleanup the interval on component unmount
+        return () => clearInterval(intervalId);
+    }, [team]); // Add team as a dependency to refetch when team changes
 
     const handleSelectChange = (index, field, value) => {
         const newSelectedOptions = [...selectedOptions];
@@ -54,6 +70,24 @@ function App() {
     const removeFromTeam = (player) => {
         setTeam(team.filter((p) => p.id !== player.id));
         setPlayers([...players, player]);
+    };
+
+    const onAddPlayer = async (newPlayer) => {
+        try {
+            const response = await fetch('/api/players', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(newPlayer), // Ensuring JSON serialization
+            });
+            if (!response.ok) throw new Error('Failed to add player');
+            const data = await response.json();
+            console.log("Added player response:", data); // Check server response
+            fetchPlayers();
+        } catch (error) {
+            console.error("Error adding player:", error);
+        }
     };
 
     const onDeletePlayer = async (playerId) => {
@@ -74,13 +108,13 @@ function App() {
 
     const assembleBestTeam = async () => {
         try {
-            let currentTeam = [...team]; // Start with the current team
+            let selectedPlayers = []; // Start with the current team
 
-            // Loop through selectedOptions to make each request one by one
             for (const { position, skill } of selectedOptions) {
+                if (selectedPlayers.length >= 5) break; // Stop if we reach the max team size
+
                 if (position && skill) {
-                    // Update the existing player names before each request
-                    const existingPlayerNames = currentTeam.map(player => player.name).join(',');
+                    const existingPlayerNames = selectedPlayers.map(player => player.name).join(',');
 
                     const response = await fetch(`/api/select?positionStr=${position}&skillStr=${skill}&existingPlayers=${existingPlayerNames}`, {
                         method: 'POST',
@@ -91,9 +125,8 @@ function App() {
 
                     if (response.ok) {
                         const bestPlayer = await response.json();
-
                         if (bestPlayer) {
-                            currentTeam.push(bestPlayer); // Add the best player to the team
+                            selectedPlayers.push(bestPlayer); // Add selected player to the array
                         }
                     } else {
                         console.error(`Failed to fetch best player for ${position} with ${skill}`);
@@ -101,12 +134,14 @@ function App() {
                 }
             }
 
-            setBestPlayers(currentTeam); // Set the updated team as the best players
+            setTeam(selectedPlayers.slice(0, 5)); // Ensure only the top 5 are added to the team
         } catch (error) {
             console.error('Error assembling best team:', error);
             setError('Failed to assemble the best team.');
         }
     };
+
+
 
 
     const generateRandomPlayers = async () => {
@@ -143,7 +178,7 @@ function App() {
             <h1>Team Manager</h1>
             <div className="columnsContainer">
                 <div className="column">
-                    <PlayerList players={players} onAddToTeam={addToTeam} onDeletePlayer={onDeletePlayer} onGenerateRandomPlayers={generateRandomPlayers} />
+                    <PlayerList players={players} onAddToTeam={addToTeam} onDeletePlayer={onDeletePlayer} onGenerateRandomPlayers={generateRandomPlayers} onAddPlayer={onAddPlayer} />
                 </div>
 
                 <div className="column">
