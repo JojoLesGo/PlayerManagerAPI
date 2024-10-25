@@ -6,18 +6,12 @@ using PlayerManager.Server.Utilities;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
-    });
-builder.Services.AddControllersWithViews()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
-    });
+// Configure global JSON serialization options
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    // Add a converter to serialize enums as strings
+    options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+});
 
 // Add Swagger services
 builder.Services.AddEndpointsApiExplorer();
@@ -53,12 +47,20 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
-app.UseAuthorization();
-app.MapControllers();
 
 app.MapGet("/api/", () => "Player Management API");
 
 app.MapGet("/api/players", (IPlayerRepository repo) => repo.GetAllPlayers());
+
+app.MapGet("/api/skills", () =>
+{
+    List<string> skills = new List<string>();
+    foreach (var skill in Enum.GetValues<SkillName>())
+    {
+        skills.Add(skill.ToString());
+    }
+    return Results.Ok(skills);
+});
 
 app.MapPost("/api/players", (Player player, IPlayerRepository repo) => {
     // Validate player name

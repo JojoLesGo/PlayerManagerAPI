@@ -1,0 +1,78 @@
+/* Ensure the main container adjusts to fit content */
+.playerListContainer {
+    max-height: 400px; /* Limit vertical height */
+    overflow-y: auto; /* Allow vertical scrolling */
+    overflow-x: hidden;
+    width: 100%; /* Take full width of the parent */
+}
+
+/* Search box styling */
+.searchBox {
+    width: 95%; /* Fill width of the container */
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+/* Ensure player row fills the width */
+.playerRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Distribute space between name and buttons */
+    padding-right: 15px;
+    width: 100%; /* Take full width */
+    margin-bottom: 10px;
+}
+
+/* Ensure player name doesn't cause overflow */
+.playerName {
+    flex-grow: 1; /* Allow name to take available space */
+    margin-right: 10px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis; /* Show "..." for overflow text */
+}
+
+/* Buttons should have enough space to display correctly */
+.playerButtons {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Add space between buttons */
+}
+
+/* Styling for buttons */
+.buttonSmall {
+    background-color: #333;
+    color: #fff;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 4px;
+    min-width: 40px; /* Ensure button width isn't too small */
+    text-align: center;
+}
+
+    .buttonSmall:hover {
+        background-color: #555;
+    }
+
+/* Tooltip styles */
+.tooltip {
+    position: absolute;
+    background-color: #333;
+    color: #fff;
+    padding: 5px;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, -100%);
+    transition: opacity 0.2s ease;
+    z-index: 10;
+}
+
+.playerRow:hover .tooltip {
+    opacity: 1;
+}
